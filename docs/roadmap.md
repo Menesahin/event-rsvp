@@ -48,6 +48,14 @@ Target: Functional platform with polished UI/UX for tech community events.
 - [x] Error handling (notFound for missing resources)
 - [x] SEO metadata (title templates, OG tags, generateMetadata)
 
+### Phase 8: Dockerization ✅
+- [x] Multi-stage Dockerfile (Node 20 alpine + Prisma generate + standalone build)
+- [x] docker-compose.yml (postgres + migrate + app with health checks)
+- [x] Non-root user, pinned image versions
+- [x] .dockerignore + separate .env.docker.example
+- [x] next.config.ts standalone output
+- [x] ADR-006 documenting decisions
+
 ---
 
 ## Post-MVP Roadmap

@@ -1,0 +1,40 @@
+node_modules
+.next
+.git
+.gitignore
+.github
+.idea
+.vscode
+.DS_Store
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.development.local
+.env.production.local
+.env.docker
+
+# Build artifacts
+dist
+build
+out
+coverage
+*.tsbuildinfo
+next-env.d.ts
+
+# Generated (will regenerate in container)
+src/generated
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# Docs (not needed in runtime image)
+docs
+.claude
+README.md
+AGENTS.md
+CLAUDE.md

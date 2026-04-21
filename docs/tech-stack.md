@@ -17,6 +17,8 @@
 | Validation | Zod | latest | Schema + type inference |
 | Toast | Sonner | latest | Action feedback |
 | Logging | Pino | latest | Structured JSON, pino-pretty in dev |
+| Container | Docker | 24+ | Multi-stage build, standalone output |
+| Orchestration | Docker Compose | v2 | App + PostgreSQL + migrate service |
 
 ## Why Next.js 16.2?
 
@@ -92,7 +94,6 @@ All user input is validated with Zod schemas at the server action boundary. Clie
 | tRPC | Server Actions provide type-safe mutations natively in Next.js |
 | REST API | No external consumers in MVP — Server Actions are sufficient |
 | Redis | No caching, rate limiting, or session store needed for MVP |
-| Docker | Deploy target TBD — avoiding premature containerization |
 | Zustand/Redux | No complex client state — server state via Server Components |
 | TanStack Query | Server Components handle data fetching — no client-side cache needed |
 | next-themes | Light theme only for MVP |

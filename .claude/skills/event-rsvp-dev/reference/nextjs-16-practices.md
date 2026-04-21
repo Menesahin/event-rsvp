@@ -434,3 +434,108 @@ export default nextConfig;
 | `experimental.ppr` | `cacheComponents: true` |
 | `experimental.dynamicIO` | `cacheComponents` |
 | `middleware.ts` (deprecated) | `proxy.ts` |
+
+---
+
+## Prisma 7 Breaking Changes (Used in This Project)
+
+Prisma 7 introduced breaking changes from Prisma 6. See also `docs/adr/005-prisma-7-adapter.md`.
+
+### `url` moved out of schema.prisma
+
+```prisma
+// WRONG (Prisma 6 style — Prisma 7 fails validation)
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// CORRECT (Prisma 7)
+datasource db {
+  provider = "postgresql"
+}
+```
+
+The URL is set in `prisma.config.ts`:
+
+```ts
+import "dotenv/config";
+import { defineConfig } from "prisma/config";
+
+export default defineConfig({
+  schema: "prisma/schema.prisma",
+  migrations: { path: "prisma/migrations" },
+  datasource: { url: process.env["DATABASE_URL"] },
+});
+```
+
+### PrismaClient requires adapter
+
+```ts
+// WRONG (Prisma 7 fails without adapter)
+const prisma = new PrismaClient();
+
+// CORRECT (use PrismaPg adapter)
+import { PrismaClient } from "@/generated/prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter });
+```
+
+### Generated client imports
+
+Prisma 7 generates to `src/generated/prisma/` (configured via `output` in schema). **No barrel index** — import from `/client` explicitly:
+
+```ts
+// WRONG
+import { PrismaClient, UserRole } from "@/generated/prisma";
+
+// CORRECT
+import { PrismaClient, UserRole } from "@/generated/prisma/client";
+```
+
+---
+
+## Docker Deployment (Production-Ready)
+
+See `docs/adr/006-docker-deployment.md` for full rationale.
+
+### next.config.ts requirement
+
+```ts
+const nextConfig: NextConfig = {
+  output: "standalone",           // REQUIRED for Docker — produces .next/standalone/server.js
+  serverExternalPackages: ["pino", "pino-pretty"],
+  images: { remotePatterns: [{ protocol: "https", hostname: "**" }] },
+};
+```
+
+### Dockerfile pattern (multi-stage)
+
+1. **base** — Node 22 alpine + `npm install -g pnpm@VERSION` (do NOT use corepack — keyid verification bug)
+2. **deps** — `pnpm install --frozen-lockfile` with cache mount
+3. **builder** — `pnpm prisma generate && pnpm build`
+4. **runner** — Copy `.next/standalone`, `.next/static`, `public/`, `src/generated/`, `prisma/` with non-root user
+
+```dockerfile
+FROM node:22-alpine AS base
+RUN apk add --no-cache libc6-compat openssl wget \
+    && npm install -g pnpm@10.33.0   # Avoid corepack keyid bug
+WORKDIR /app
+```
+
+### Common pitfalls
+
+- **Do NOT remove `output: "standalone"`** — breaks Docker.
+- **`AUTH_TRUST_HOST=true`** required for NextAuth behind Docker (non-localhost).
+- **Non-root user** (uid 1001) — global Docker rule.
+- **Healthcheck** via `wget --spider http://localhost:3000`.
+- **`.dockerignore`** excludes `docs/`, `.git/`, `node_modules/`, `.env*`.
+
+### docker-compose pattern
+
+Three services:
+1. `postgres` (with `pg_isready` healthcheck + named volume)
+2. `migrate` — one-shot: `pnpm prisma migrate deploy && pnpm db:seed`, exits after
+3. `app` — depends on postgres (healthy) + migrate (completed successfully)
